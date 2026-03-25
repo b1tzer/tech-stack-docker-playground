@@ -83,7 +83,7 @@ test-failover:
 		if [ "$$S1_ROLE" = "master" ]; then \
 			printf "           [ ❌ \033[1;31mredis-master\033[0m (down) ]\033[K\n" ; \
 			printf "             /                      \\\033[K\n" ; \
-			printf "[ 👑 \033[1;32mredis-slave\033[0m (master) ] [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\033[K\n\n" ; \
+			printf "[ 👑 \033[1;32mredis-slave\033[0m (master) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\033[K\n\n" ; \
 		elif [ "$$S2_ROLE" = "master" ]; then \
 			printf "           [ ❌ \033[1;31mredis-master\033[0m (down) ]\033[K\n" ; \
 			printf "             /                      \\\033[K\n" ; \
