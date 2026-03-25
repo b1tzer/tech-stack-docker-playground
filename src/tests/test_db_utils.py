@@ -6,9 +6,9 @@ import sys
 
 # Add parent directory to path to import db_utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from db_utils import get_db_connection
+from core.db_utils import get_db_connection
 
-@patch('db_utils.pymysql.connect')
+@patch('core.db_utils.pymysql.connect')
 def test_get_db_connection_success(mock_connect):
     # Arrange
     mock_connection = MagicMock()
@@ -21,8 +21,8 @@ def test_get_db_connection_success(mock_connect):
     assert conn == mock_connection
     mock_connect.assert_called_once()
 
-@patch('db_utils.time.sleep')
-@patch('db_utils.pymysql.connect')
+@patch('core.db_utils.time.sleep')
+@patch('core.db_utils.pymysql.connect')
 def test_get_db_connection_retry_success(mock_connect, mock_sleep):
     # Arrange
     mock_connection = MagicMock()
@@ -41,8 +41,8 @@ def test_get_db_connection_retry_success(mock_connect, mock_sleep):
     assert mock_connect.call_count == 3
     assert mock_sleep.call_count == 2
 
-@patch('db_utils.time.sleep')
-@patch('db_utils.pymysql.connect')
+@patch('core.db_utils.time.sleep')
+@patch('core.db_utils.pymysql.connect')
 def test_get_db_connection_failure(mock_connect, mock_sleep):
     # Arrange
     # Always fail

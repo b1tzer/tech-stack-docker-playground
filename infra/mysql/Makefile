@@ -94,36 +94,28 @@ define run_python_script
 echo "Error: mysql-master is not running. Please run 'make start' first."; \
 exit 1; \
 fi
-	@docker run --rm --network docker-compose_mysql-network \
--v $(PWD)/seeder:/app -w /app \
--e MYSQL_HOST=mysql-master \
--e MYSQL_USER=$(MYSQL_USER) \
--e MYSQL_PASSWORD=$(MYSQL_PASSWORD) \
--e MYSQL_DATABASE=$(MYSQL_DATABASE) \
-python:3.9-slim bash -c "pip install -r requirements.txt > /dev/null 2>&1 && python $(1)"
+	@docker-compose run --rm seeder bash -c "pip install -r requirements.txt > /dev/null 2>&1 && python $(1)"
 endef
 
 seed:
 	@echo "Seeding $(ACTUAL_COUNT) records of meaningful data..."
-	$(call run_python_script,seed.py $(ACTUAL_COUNT))
+	$(call run_python_script,seeders/main.py $(ACTUAL_COUNT))
 
 test-perf:
 	@echo "Running performance test with $(ACTUAL_COUNT) records..."
-	$(call run_python_script,benchmark_inserts.py $(ACTUAL_COUNT))
+	$(call run_python_script,benchmarks/benchmark_inserts.py $(ACTUAL_COUNT))
 
 test-prefix:
 	@echo "Running prefix performance experiment..."
-	$(call run_python_script,benchmark_like_prefix.py)
+	$(call run_python_script,benchmarks/benchmark_like_prefix.py)
 
 study-locks:
 	@echo "Running MySQL locks study scenarios..."
-	$(call run_python_script,study_locks.py)
+	$(call run_python_script,demos/mysql_locks.py)
 
 test:
 	@echo "Running unit tests..."
-	@docker run --rm \
--v $(PWD)/seeder:/app -w /app \
-python:3.9-slim bash -c "pip install -r requirements.txt > /dev/null 2>&1 && pytest tests/ -v"
+	@docker-compose run --rm seeder bash -c "pip install -r requirements.txt > /dev/null 2>&1 && pytest tests/ -v"
 
 status:
 	@echo "=== Docker Containers Status ==="

@@ -21,6 +21,7 @@ Welcome to the Redis Playground! This environment is designed to help you learn,
 
 1. **Start the Environment**:
    ```bash
+   cd infra/redis
    make start
    ```
    This will start the Redis Master, Redis Slave, and Redis Commander.
@@ -160,6 +161,7 @@ make clean  # Stop containers and delete all persistent data
 
 1. **启动环境**：
    ```bash
+   cd infra/redis
    make start
    ```
    这将启动 Redis 主节点、从节点以及 Redis Commander。

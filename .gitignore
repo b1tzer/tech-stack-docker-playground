@@ -35,13 +35,13 @@ docker-compose.override.yml
 .docker/
 
 # MySQL Data
-mysql/master/data/
-mysql/slave/data/
-mysql/master/conf/auto.cnf
-mysql/slave/conf/auto.cnf
+infra/mysql/master/data/
+infra/mysql/slave/data/
+infra/mysql/master/conf/auto.cnf
+infra/mysql/slave/conf/auto.cnf
 
 # Redis Data (for future)
-redis/data/
+infra/redis/data/
 
 # IDEs and Editors
 .vscode/

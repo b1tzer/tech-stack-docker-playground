@@ -176,9 +176,6 @@ docker exec -i mysql-master mysql -uroot -prootpassword123 business_db < backup.
 ├── Makefile                    # Project management commands
 ├── init-database.sql           # Database schema initialization
 ├── batch-insert.sql            # Batch data insertion procedures
-├── seeder/                     # Python Faker data generator
-│   ├── seed.py                 # Seeder script
-│   └── requirements.txt        # Python dependencies
 ├── README.md                   # This file
 ├── master/                     # Master database configuration
 │   ├── conf/my.cnf             # Master MySQL configuration
@@ -187,6 +184,7 @@ docker exec -i mysql-master mysql -uroot -prootpassword123 business_db < backup.
     ├── conf/my.cnf             # Slave MySQL configuration
     └── init/init.sql           # Slave initialization script
 ```
+*(Note: Python scripts for seeding, benchmarking, and demos are located in the `../../src/` directory)*
 
 ## Security Notes
 

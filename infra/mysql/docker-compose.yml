@@ -63,7 +63,7 @@ services:
       - --enforce-gtid-consistency=ON
 
   seeder:
-    build: ./seeder
+    build: ../../src
     container_name: seeder
     depends_on:
       mysql-master:
@@ -73,7 +73,7 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-    command: ["python", "seed.py", "100000"]
+    command: ["python", "seeders/main.py", "100000"]
     networks:
       - mysql-network
     restart: on-failure:3

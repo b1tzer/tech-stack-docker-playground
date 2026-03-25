@@ -3,10 +3,47 @@ import argparse
 from faker import Faker
 import random
 import uuid
-from db_utils import get_db_connection
+import sys
+
+# Add src to path so we can import core
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from core.db_utils import get_db_connection
 
 # Initialize Faker with multiple locales for diverse data
 fake = Faker(['zh_CN', 'en_US'])
+
+def batch_insert(cursor, connection, sql, data_generator, batch_size=5000):
+    """Generic batch insert executor to eliminate duplicate code."""
+    data = []
+    inserted_count = 0
+    for item in data_generator:
+        data.append(item)
+        if len(data) >= batch_size:
+            cursor.executemany(sql, data)
+            connection.commit()
+            inserted_count += len(data)
+            print(f"  -> Inserted {inserted_count} records...")
+            data = []
+            
+    if data:
+        cursor.executemany(sql, data)
+        connection.commit()
+        inserted_count += len(data)
+        print(f"  -> Inserted {inserted_count} records...")
+
+def generate_users(count):
+    for _ in range(count):
+        unique_id = str(uuid.uuid4())[:8]
+        yield (
+            f"{fake.user_name()}_{unique_id}",
+            f"{unique_id}_{fake.email()}",
+            fake.sha256(),
+            fake.first_name(),
+            fake.last_name(),
+            fake.phone_number()[:20],
+            random.choice(['active', 'active', 'active', 'inactive', 'suspended']),
+            random.choice(['user', 'user', 'user', 'manager', 'admin'])
+        )
 
 def seed_users(cursor, connection, count, batch_size=5000):
     print(f"Seeding {count} users in batches of {batch_size} (Fast Method)...")
@@ -15,33 +52,7 @@ def seed_users(cursor, connection, count, batch_size=5000):
         (username, email, password_hash, first_name, last_name, phone, status, role)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """
-    data = []
-    for i in range(count):
-        # Use uuid to ensure unique username and email even on repeated runs
-        unique_id = str(uuid.uuid4())[:8]
-        username = f"{fake.user_name()}_{unique_id}"
-        email = f"{unique_id}_{fake.email()}"
-        data.append((
-            username,
-            email,
-            fake.sha256(),
-            fake.first_name(),
-            fake.last_name(),
-            fake.phone_number()[:20],
-            random.choice(['active', 'active', 'active', 'inactive', 'suspended']),
-            random.choice(['user', 'user', 'user', 'manager', 'admin'])
-        ))
-        
-        if len(data) >= batch_size:
-            cursor.executemany(sql, data)
-            connection.commit()
-            print(f"  -> Inserted {i + 1} users...")
-            data = []
-            
-    if data:
-        cursor.executemany(sql, data)
-        connection.commit()
-        print(f"  -> Inserted {count} users...")
+    batch_insert(cursor, connection, sql, generate_users(count), batch_size)
 
 def seed_categories(cursor, connection, count):
     print(f"Seeding {count} categories...")
@@ -132,6 +143,24 @@ def seed_categories(cursor, connection, count):
         connection.commit()
     print(f"  -> Inserted {count} subcategories...")
 
+def generate_products(count, categories):
+    for _ in range(count):
+        unique_id = str(uuid.uuid4())[:8]
+        sku = f"SKU-{fake.ean(length=8)}-{unique_id}"
+        price = round(random.uniform(10.0, 1000.0), 2)
+        cost_price = round(price * random.uniform(0.4, 0.8), 2)
+        yield (
+            f"{fake.word().capitalize()} {fake.word().capitalize()}",
+            fake.text(max_nb_chars=200),
+            sku,
+            random.choice(categories),
+            price,
+            cost_price,
+            random.randint(0, 1000),
+            round(random.uniform(0.1, 50.0), 2),
+            random.choice(['active', 'active', 'inactive', 'discontinued'])
+        )
+
 def seed_products(cursor, connection, count, batch_size=5000):
     print(f"Seeding {count} products in batches of {batch_size}...")
     # Get existing categories
@@ -146,35 +175,20 @@ def seed_products(cursor, connection, count, batch_size=5000):
         (name, description, sku, category_id, price, cost_price, stock_quantity, weight, status)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-    data = []
-    for i in range(count):
-        unique_id = str(uuid.uuid4())[:8]
-        sku = f"SKU-{fake.ean(length=8)}-{unique_id}"
-        price = round(random.uniform(10.0, 1000.0), 2)
-        cost_price = round(price * random.uniform(0.4, 0.8), 2)
-        data.append((
-            f"{fake.word().capitalize()} {fake.word().capitalize()}",
-            fake.text(max_nb_chars=200),
-            sku,
-            random.choice(categories),
-            price,
-            cost_price,
-            random.randint(0, 1000),
-            round(random.uniform(0.1, 50.0), 2),
-            random.choice(['active', 'active', 'inactive', 'discontinued'])
-        ))
-        
-        if len(data) >= batch_size:
-            cursor.executemany(sql, data)
-            connection.commit()
-            print(f"  -> Inserted {i + 1} products...")
-            data = []
-            
-    if data:
-        cursor.executemany(sql, data)
-        connection.commit()
-        print(f"  -> Inserted {count} products...")
+    batch_insert(cursor, connection, sql, generate_products(count, categories), batch_size)
  
+def generate_inventory_transactions(count, products, users):
+    for _ in range(count):
+        yield (
+            random.choice(products),
+            random.choice(['in', 'out', 'adjustment']),
+            random.randint(1, 100),
+            random.choice(['order', 'purchase', 'adjustment', 'return']),
+            random.randint(1, 10000),
+            fake.sentence(),
+            random.choice(users)
+        )
+
 def seed_inventory_transactions(cursor, connection, count, batch_size=5000):
     print(f"Seeding {count} inventory transactions in batches of {batch_size}...")
     cursor.execute("SELECT id FROM products")
@@ -191,36 +205,7 @@ def seed_inventory_transactions(cursor, connection, count, batch_size=5000):
         (product_id, transaction_type, quantity, reference_type, reference_id, notes, created_by)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
     """
-    data = []
-    for i in range(count):
-        product_id = random.choice(products)
-        transaction_type = random.choice(['in', 'out', 'adjustment'])
-        quantity = random.randint(1, 100)
-        reference_type = random.choice(['order', 'purchase', 'adjustment', 'return'])
-        reference_id = random.randint(1, 10000)
-        notes = fake.sentence()
-        created_by = random.choice(users)
-        
-        data.append((
-            product_id,
-            transaction_type,
-            quantity,
-            reference_type,
-            reference_id,
-            notes,
-            created_by
-        ))
-        
-        if len(data) >= batch_size:
-            cursor.executemany(sql, data)
-            connection.commit()
-            print(f"  -> Inserted {i + 1} inventory transactions...")
-            data = []
-            
-    if data:
-        cursor.executemany(sql, data)
-        connection.commit()
-        print(f"  -> Inserted {count} inventory transactions...")
+    batch_insert(cursor, connection, sql, generate_inventory_transactions(count, products, users), batch_size)
 
 def seed_orders(cursor, connection, count, batch_size=2000):
     print(f"Seeding {count} orders in batches of {batch_size}...")
@@ -286,6 +271,19 @@ def seed_orders(cursor, connection, count, batch_size=2000):
     connection.commit()
     print(f"  -> Inserted {count} orders...")
 
+def generate_payments(count, orders):
+    for _ in range(count):
+        order = random.choice(orders)
+        status = random.choice(['pending', 'completed', 'failed', 'refunded'])
+        yield (
+            order['id'],
+            random.choice(['credit_card', 'debit_card', 'paypal', 'bank_transfer']),
+            order['total_amount'],
+            f"TXN-{uuid.uuid4().hex[:12].upper()}",
+            status,
+            fake.date_time_this_year() if status == 'completed' else None
+        )
+
 def seed_payments(cursor, connection, count, batch_size=5000):
     print(f"Seeding {count} payments in batches of {batch_size}...")
     cursor.execute("SELECT id, total_amount FROM orders WHERE status IN ('confirmed', 'shipped', 'delivered')")
@@ -300,35 +298,7 @@ def seed_payments(cursor, connection, count, batch_size=5000):
         (order_id, payment_method, amount, transaction_id, status, payment_date)
         VALUES (%s, %s, %s, %s, %s, %s)
     """
-    data = []
-    for i in range(count):
-        order = random.choice(orders)
-        order_id = order['id']
-        amount = order['total_amount']
-        payment_method = random.choice(['credit_card', 'debit_card', 'paypal', 'bank_transfer'])
-        transaction_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
-        status = random.choice(['pending', 'completed', 'failed', 'refunded'])
-        payment_date = fake.date_time_this_year() if status == 'completed' else None
-        
-        data.append((
-            order_id,
-            payment_method,
-            amount,
-            transaction_id,
-            status,
-            payment_date
-        ))
-        
-        if len(data) >= batch_size:
-            cursor.executemany(sql, data)
-            connection.commit()
-            print(f"  -> Inserted {i + 1} payments...")
-            data = []
-            
-    if data:
-        cursor.executemany(sql, data)
-        connection.commit()
-        print(f"  -> Inserted {count} payments...")
+    batch_insert(cursor, connection, sql, generate_payments(count, orders), batch_size)
 
 import time
 

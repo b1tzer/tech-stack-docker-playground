@@ -22,23 +22,35 @@ This project is designed to help developers learn, demonstrate, experiment, and 
 
 The repository is organized by technology stack. Each directory contains a self-contained environment for a specific tool.
 
+```text
+/docker-compose
+├── infra/                 # Infrastructure definitions (Docker & Configs)
+│   ├── mysql/             # MySQL Master-Slave cluster
+│   └── redis/             # Redis Sentinel cluster
+├── scripts/               # Complex shell scripts
+│   └── demos/             # Interactive demonstration scripts
+└── src/                   # Unified Python codebase
+    ├── core/              # Shared utilities
+    ├── seeders/           # Data generation scripts
+    ├── benchmarks/        # Performance testing scripts
+    ├── demos/             # Scenario demonstrations
+    └── tests/             # Unit tests
+```
+
 #### Current Stacks
 
-- **[MySQL](./mysql/)**: A complete MySQL 8.0 Master-Slave replication setup with a rich business database schema, batch data insertion capabilities, and performance testing scripts.
-
-#### Upcoming Stacks
-
-- **Redis**: (Coming Soon) Environments for exploring Redis caching, persistence, clustering, and more.
+- **[MySQL](./infra/mysql/)**: A complete MySQL 8.0 Master-Slave replication setup with a rich business database schema, batch data insertion capabilities, and performance testing scripts.
+- **[Redis](./infra/redis/)**: A Redis Master-Slave-Sentinel cluster setup with interactive demonstrations for failover, persistence, big keys, OOM, cache avalanche, and cache penetration.
 
 ### 🚀 Getting Started
 
-To get started with a specific technology, navigate to its directory and follow the instructions in its respective `README.md`.
+To get started with a specific technology, navigate to its infrastructure directory and follow the instructions in its respective `README.md`.
 
 For example, to explore the MySQL environment:
 
 ```bash
-cd mysql
-# Follow the instructions in mysql/README.md
+cd infra/mysql
+# Follow the instructions in infra/mysql/README.md
 make start
 ```
 
@@ -78,23 +90,35 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 代码库按技术栈组织。每个目录都包含特定工具的独立环境。
 
+```text
+/docker-compose
+├── infra/                 # 基础设施定义 (Docker & 配置)
+│   ├── mysql/             # MySQL 主从复制集群
+│   └── redis/             # Redis 哨兵高可用集群
+├── scripts/               # 复杂的 Shell 脚本
+│   └── demos/             # 交互式演示脚本
+└── src/                   # 统一的 Python 代码库
+    ├── core/              # 共享核心工具
+    ├── seeders/           # 数据生成脚本
+    ├── benchmarks/        # 性能测试脚本
+    ├── demos/             # 场景演示脚本
+    └── tests/             # 单元测试
+```
+
 #### 当前支持的技术栈
 
-- **[MySQL](./mysql/)**：一个完整的 MySQL 8.0 主从复制环境，包含丰富的业务数据库模式、批量数据插入功能和性能测试脚本。
-
-#### 即将推出的技术栈
-
-- **Redis**：（即将推出）用于探索 Redis 缓存、持久化、集群等功能的环境。
+- **[MySQL](./infra/mysql/)**：一个完整的 MySQL 8.0 主从复制环境，包含丰富的业务数据库模式、批量数据插入功能和性能测试脚本。
+- **[Redis](./infra/redis/)**：一个 Redis 主从哨兵集群环境，包含故障转移、持久化、大 Key、OOM、缓存雪崩和缓存穿透等交互式演示。
 
 ### 🚀 快速开始
 
-要开始使用特定的技术栈，请导航到其目录并按照其各自的 `README.md` 中的说明进行操作。
+要开始使用特定的技术栈，请导航到其基础设施目录并按照其各自的 `README.md` 中的说明进行操作。
 
 例如，要探索 MySQL 环境：
 
 ```bash
-cd mysql
-# 按照 mysql/README.md 中的说明进行操作
+cd infra/mysql
+# 按照 infra/mysql/README.md 中的说明进行操作
 make start
 ```
 
