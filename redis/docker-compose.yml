@@ -9,7 +9,9 @@ services:
     volumes:
       - ./conf/redis.conf:/usr/local/etc/redis/redis.conf
       - ./data/master:/data
-    command: redis-server /usr/local/etc/redis/redis.conf
+    # Copy config to /data so Sentinel can rewrite it persistently during failover
+    command: >
+      sh -c "if [ ! -f /data/redis.conf ]; then cp /usr/local/etc/redis/redis.conf /data/redis.conf; fi; redis-server /data/redis.conf"
     environment:
       - TZ=Asia/Shanghai
     networks:
@@ -24,7 +26,8 @@ services:
     volumes:
       - ./conf/redis-slave.conf:/usr/local/etc/redis/redis.conf
       - ./data/slave:/data
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: >
+      sh -c "if [ ! -f /data/redis.conf ]; then cp /usr/local/etc/redis/redis.conf /data/redis.conf; fi; redis-server /data/redis.conf"
     environment:
       - TZ=Asia/Shanghai
     depends_on:
@@ -33,11 +36,95 @@ services:
       - redis-net
     restart: unless-stopped
 
+  redis-slave2:
+    image: redis:7.2-alpine
+    container_name: redis-slave2
+    ports:
+      - "6381:6379"
+    volumes:
+      - ./conf/redis-slave.conf:/usr/local/etc/redis/redis.conf
+      - ./data/slave2:/data
+    command: >
+      sh -c "if [ ! -f /data/redis.conf ]; then cp /usr/local/etc/redis/redis.conf /data/redis.conf; fi; redis-server /data/redis.conf"
+    environment:
+      - TZ=Asia/Shanghai
+    depends_on:
+      - redis-master
+    networks:
+      - redis-net
+    restart: unless-stopped
+
+  redis-sentinel-1:
+    image: redis:7.2-alpine
+    container_name: redis-sentinel-1
+    ports:
+      - "26379:26379"
+    command: >
+      sh -c "echo 'port 26379' > /tmp/sentinel.conf &&
+      echo 'dir /tmp' >> /tmp/sentinel.conf &&
+      echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
+      echo 'sentinel monitor mymaster redis-master 6379 2' >> /tmp/sentinel.conf &&
+      echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
+      echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
+      echo 'sentinel failover-timeout mymaster 10000' >> /tmp/sentinel.conf &&
+      redis-sentinel /tmp/sentinel.conf"
+    depends_on:
+      - redis-master
+      - redis-slave
+      - redis-slave2
+    networks:
+      - redis-net
+    restart: unless-stopped
+
+  redis-sentinel-2:
+    image: redis:7.2-alpine
+    container_name: redis-sentinel-2
+    ports:
+      - "26380:26379"
+    command: >
+      sh -c "echo 'port 26379' > /tmp/sentinel.conf &&
+      echo 'dir /tmp' >> /tmp/sentinel.conf &&
+      echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
+      echo 'sentinel monitor mymaster redis-master 6379 2' >> /tmp/sentinel.conf &&
+      echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
+      echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
+      echo 'sentinel failover-timeout mymaster 10000' >> /tmp/sentinel.conf &&
+      redis-sentinel /tmp/sentinel.conf"
+    depends_on:
+      - redis-master
+      - redis-slave
+      - redis-slave2
+    networks:
+      - redis-net
+    restart: unless-stopped
+
+  redis-sentinel-3:
+    image: redis:7.2-alpine
+    container_name: redis-sentinel-3
+    ports:
+      - "26381:26379"
+    command: >
+      sh -c "echo 'port 26379' > /tmp/sentinel.conf &&
+      echo 'dir /tmp' >> /tmp/sentinel.conf &&
+      echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
+      echo 'sentinel monitor mymaster redis-master 6379 2' >> /tmp/sentinel.conf &&
+      echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
+      echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
+      echo 'sentinel failover-timeout mymaster 10000' >> /tmp/sentinel.conf &&
+      redis-sentinel /tmp/sentinel.conf"
+    depends_on:
+      - redis-master
+      - redis-slave
+      - redis-slave2
+    networks:
+      - redis-net
+    restart: unless-stopped
+
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: redis-commander
     environment:
-      - REDIS_HOSTS=master:redis-master:6379,slave:redis-slave:6379
+      - REDIS_HOSTS=master:redis-master:6379,slave1:redis-slave:6379,slave2:redis-slave2:6379
     ports:
       - "8081:8081"
     networks:

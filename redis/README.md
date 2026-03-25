@@ -11,10 +11,11 @@ Welcome to the Redis Playground! This environment is designed to help you learn,
 
 ### 🌟 Features Demonstrated
 
-1. **Master-Slave Replication**: A basic high-availability setup with one master and one read-only replica.
-2. **Persistence Mechanisms**: Both RDB (snapshotting) and AOF (Append Only File) are configured to demonstrate data durability.
-3. **Memory Management**: Configured with `maxmemory` and an eviction policy (`allkeys-lru`) to simulate memory-constrained environments.
-4. **Visual Management**: Includes `redis-commander` for a web-based GUI to inspect keys and monitor the instances.
+1. **Master-Slave Replication**: A basic high-availability setup with one master and two read-only replicas.
+2. **High Availability (Sentinel)**: Three Sentinel nodes configured to monitor the master and automatically perform failover if the master goes down.
+3. **Persistence Mechanisms**: Both RDB (snapshotting) and AOF (Append Only File) are configured to demonstrate data durability.
+4. **Memory Management**: Configured with `maxmemory` and an eviction policy (`allkeys-lru`) to simulate memory-constrained environments.
+5. **Visual Management**: Includes `redis-commander` for a web-based GUI to inspect keys and monitor the instances.
 
 ### 🚀 Quick Start
 
@@ -32,7 +33,13 @@ Welcome to the Redis Playground! This environment is designed to help you learn,
    make status
    ```
 
-4. **Connect via CLI**:
+4. **Test Automatic Failover (Sentinel)**:
+   ```bash
+   make test-failover
+   ```
+   This command will stop the master node, wait for Sentinel to detect the failure, and automatically promote one of the slaves to be the new master.
+
+5. **Connect via CLI**:
    ```bash
    make cli-master  # Connect to Master
    make cli-slave   # Connect to Slave
@@ -118,10 +125,11 @@ make clean  # Stop containers and delete all persistent data
 
 ### 🌟 演示特性
 
-1. **主从复制 (Master-Slave)**：配置了一主一从的基础高可用架构，从节点只读。
-2. **持久化机制**：同时开启了 RDB（快照）和 AOF（追加文件），演示数据如何持久化到磁盘。
-3. **内存管理**：在配置文件中设置了 `maxmemory` 限制和 `allkeys-lru` 淘汰策略，模拟内存受限环境。
-4. **可视化管理**：集成了 `redis-commander`，提供 Web GUI 方便查看键值和监控实例。
+1. **主从复制 (Master-Slave)**：配置了一主两从的基础高可用架构，从节点只读。
+2. **高可用自动故障转移 (Sentinel)**：配置了 3 个 Sentinel（哨兵）节点，实时监控主节点状态。当主节点宕机时，自动将一个从节点提升为新主节点。
+3. **持久化机制**：同时开启了 RDB（快照）和 AOF（追加文件），演示数据如何持久化到磁盘。
+4. **内存管理**：在配置文件中设置了 `maxmemory` 限制和 `allkeys-lru` 淘汰策略，模拟内存受限环境。
+5. **可视化管理**：集成了 `redis-commander`，提供 Web GUI 方便查看键值和监控实例。
 
 ### 🚀 快速开始
 
@@ -139,7 +147,13 @@ make clean  # Stop containers and delete all persistent data
    make status
    ```
 
-4. **通过命令行连接**：
+4. **测试自动故障转移 (Sentinel)**：
+   ```bash
+   make test-failover
+   ```
+   该命令会模拟主节点宕机（停止 master 容器），等待哨兵检测到故障后，自动将其中一个从节点提升为新的主节点。
+
+5. **通过命令行连接**：
    ```bash
    make cli-master  # 连接到主节点
    make cli-slave   # 连接到从节点
