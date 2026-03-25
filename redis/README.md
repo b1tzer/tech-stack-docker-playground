@@ -45,7 +45,13 @@ Welcome to the Redis Playground! This environment is designed to help you learn,
    ```
    This command writes test data to the master, completely stops the cluster, restarts it, and verifies that the data survived the restart.
 
-6. **Connect via CLI**:
+6. **Test Big Key Problem**:
+   ```bash
+   make test-bigkey
+   ```
+   This command demonstrates the performance difference between using `DEL` (blocking) and `UNLINK` (non-blocking) when deleting a massive Hash key.
+
+7. **Connect via CLI**:
    ```bash
    make cli-master  # Connect to Master
    make cli-slave   # Connect to Slave
@@ -165,7 +171,13 @@ make clean  # Stop containers and delete all persistent data
    ```
    该命令会向主节点写入测试数据，然后完全停止整个集群并重新启动，最后验证数据是否在重启后依然存在。
 
-6. **通过命令行连接**：
+6. **测试大 Key 问题 (Big Key)**：
+   ```bash
+   make test-bigkey
+   ```
+   该命令会创建一个包含 10 万个字段的超大 Hash 键，并直观地演示使用 `DEL`（阻塞式删除）和 `UNLINK`（异步非阻塞删除）在耗时上的巨大差异。
+
+7. **通过命令行连接**：
    ```bash
    make cli-master  # 连接到主节点
    make cli-slave   # 连接到从节点
