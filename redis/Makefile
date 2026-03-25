@@ -55,11 +55,12 @@ test-failover:
 	@printf "\n\033[0;31m💥 Stopping Redis Master...\033[0m\n"
 	@docker stop redis-master
 	@printf "\n\033[1;33m[Step 2] Waiting for Sentinel to detect failure and promote a slave (approx 10 seconds)...\033[0m\n"
+	@printf "\033[?25l"
 	@for i in $$(seq 10 -1 1); do \
 		printf "\r\033[K\033[0;33m⏳ Waiting... %2d seconds remaining\033[0m" $$i; \
 		sleep 1; \
 	done
-	@printf "\r\033[K"
+	@printf "\r\033[K\033[?25h"
 	@printf "\n\033[1;33m[Step 3] New Master Status (Checking Sentinel):\033[0m\n"
 	@docker exec redis-sentinel-1 redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
 	@printf "\n\033[1;33m[Step 4] Checking Role of redis-slave:\033[0m\n"
@@ -95,11 +96,12 @@ test-persistence:
 	@printf "\n\033[0;34m🔄 Starting the cluster again...\033[0m\n"
 	@docker-compose up -d
 	@printf "\n\033[1;33m[Step 5] Waiting for cluster to initialize (5 seconds)...\033[0m\n"
+	@printf "\033[?25l"
 	@for i in $$(seq 5 -1 1); do \
 		printf "\r\033[K\033[0;33m⏳ Waiting... %2d seconds remaining\033[0m" $$i; \
 		sleep 1; \
 	done
-	@printf "\r\033[K"
+	@printf "\r\033[K\033[?25h"
 	@printf "\n\033[1;33m[Step 6] Reading test data from Redis Master after restart...\033[0m\n"
 	@printf "Value in Redis: \033[0;32m"
 	@docker exec redis-master redis-cli GET persistence_test_key | tr -d '\r'
@@ -192,6 +194,7 @@ test-avalanche:
 	@echo "👉 Press [ENTER] to watch the Live TTL Dashboard..."; read dummy
 	@printf "\n\033[0;36mLive TTL Dashboard (200 Keys - Bad Practice):\033[0m\n"
 	@for i in $$(seq 1 10); do echo ""; done
+	@printf "\033[?25l"
 	@for step in $$(seq 1 32); do \
 		printf "\033[10A"; \
 		docker exec redis-master redis-cli --raw EVAL "local ttls={}; for i=1,200 do table.insert(ttls, redis.call('TTL', ARGV[1]..':'..i)) end; return ttls" 0 "bad_key" | \
@@ -206,6 +209,7 @@ test-avalanche:
 		}'; \
 		sleep 0.5; \
 	done
+	@printf "\033[?25h"
 	@printf "\n💥 \033[0;31mAll keys expired simultaneously! If these were hot data, your database would be crushed right now.\033[0m\n\n"
 	@echo "👉 Press [ENTER] to simulate the GOOD practice (Adding random jitter)..."; read dummy
 	@printf "\n\033[1;33m[Step 2] The GOOD Practice: Adding random jitter to TTLs (10s + random 0-10s)...\033[0m\n"
@@ -214,6 +218,7 @@ test-avalanche:
 	@echo "👉 Press [ENTER] to watch the Live TTL Dashboard..."; read dummy
 	@printf "\n\033[0;36mLive TTL Dashboard (200 Keys - Good Practice):\033[0m\n"
 	@for i in $$(seq 1 10); do echo ""; done
+	@printf "\033[?25l"
 	@for step in $$(seq 1 42); do \
 		printf "\033[10A"; \
 		docker exec redis-master redis-cli --raw EVAL "local ttls={}; for i=1,200 do table.insert(ttls, redis.call('TTL', ARGV[1]..':'..i)) end; return ttls" 0 "good_key" | \
@@ -228,6 +233,7 @@ test-avalanche:
 		}'; \
 		sleep 0.5; \
 	done
+	@printf "\033[?25h"
 	@printf "\n🎉 \033[0;32mKeys are expiring gradually! The database load is smoothed out.\033[0m\n\n"
 
 # Test Cache Penetration Scenario
