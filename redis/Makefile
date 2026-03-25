@@ -1,4 +1,4 @@
-.PHONY: start stop clean logs status cli-master cli-slave test-failover test-persistence test-bigkey test-oom
+.PHONY: start stop clean logs status cli-master cli-slave test-failover test-persistence test-bigkey test-oom test-avalanche test-penetration
 
 # Start the Redis cluster
 start:
@@ -172,3 +172,68 @@ test-oom:
 	@printf "\n\033[0;32m🎉 Demonstration Complete!\033[0m\n"
 	@printf "Because we configured \033[0;36mallkeys-lru\033[0m, Redis didn't crash! It automatically deleted old keys to make room for new ones.\n"
 	@printf "If the policy was \033[0;31mnoeviction\033[0m, the SET command above would have returned an OOM error.\n\n"
+
+# Test Cache Avalanche Scenario
+test-avalanche:
+	@printf "\n\033[0;34m========================================================\033[0m\n"
+	@printf "\033[0;34m❄️  Starting Cache Avalanche (缓存雪崩) Demonstration\033[0m\n"
+	@printf "\033[0;34m========================================================\033[0m\n\n"
+	@printf "\033[1;33m[Step 1] The BAD Practice: Setting many keys with the EXACT same TTL...\033[0m\n"
+	@docker exec redis-master sh -c 'for i in $$(seq 1 100); do echo "SET bad_key:$$i \"value\" EX 10"; done | redis-cli --pipe > /dev/null 2>&1'
+	@printf "\033[0;32m✔ 100 keys created with exactly 10s expiration.\033[0m\n"
+	@printf "Checking TTL of bad_key:1 -> \033[0;31m"
+	@docker exec redis-master redis-cli TTL bad_key:1 | tr -d '\r'
+	@printf "s\033[0m\n"
+	@printf "Checking TTL of bad_key:50 -> \033[0;31m"
+	@docker exec redis-master redis-cli TTL bad_key:50 | tr -d '\r'
+	@printf "s\033[0m\n\n"
+	@echo "👉 Press [ENTER] to wait 10 seconds and watch them all expire at once..."; read dummy
+	@printf "\n\033[0;31m⏳ Waiting 10 seconds...\033[0m\n"
+	@sleep 10
+	@printf "Number of bad_keys remaining: \033[0;31m"
+	@docker exec redis-master redis-cli KEYS "bad_key:*" | wc -l | tr -d ' '
+	@printf "\033[0m\n"
+	@printf "💥 All keys expired simultaneously! If these were hot data, your database would be crushed right now.\n\n"
+	@echo "👉 Press [ENTER] to simulate the GOOD practice (Adding random jitter)..."; read dummy
+	@printf "\n\033[1;33m[Step 2] The GOOD Practice: Adding random jitter to TTLs...\033[0m\n"
+	@docker exec redis-master sh -c 'for i in $$(seq 1 100); do jitter=$$((RANDOM % 5)); echo "SET good_key:$$i \"value\" EX $$((10 + jitter))"; done | redis-cli --pipe > /dev/null 2>&1'
+	@printf "\033[0;32m✔ 100 keys created with 10s + random(0-4)s expiration.\033[0m\n"
+	@printf "Checking TTL of good_key:1 -> \033[0;32m"
+	@docker exec redis-master redis-cli TTL good_key:1 | tr -d '\r'
+	@printf "s\033[0m\n"
+	@printf "Checking TTL of good_key:50 -> \033[0;32m"
+	@docker exec redis-master redis-cli TTL good_key:50 | tr -d '\r'
+	@printf "s\033[0m\n\n"
+	@echo "👉 Press [ENTER] to wait 10 seconds and see the difference..."; read dummy
+	@printf "\n\033[0;32m⏳ Waiting 10 seconds...\033[0m\n"
+	@sleep 10
+	@printf "Number of good_keys remaining: \033[0;32m"
+	@docker exec redis-master redis-cli KEYS "good_key:*" | wc -l | tr -d ' '
+	@printf "\033[0m\n"
+	@printf "🎉 Keys are expiring gradually! The database load is smoothed out.\n\n"
+
+# Test Cache Penetration Scenario
+test-penetration:
+	@printf "\n\033[0;34m========================================================\033[0m\n"
+	@printf "\033[0;34m👻 Starting Cache Penetration (缓存穿透) Demonstration\033[0m\n"
+	@printf "\033[0;34m========================================================\033[0m\n\n"
+	@printf "\033[1;33m[Concept] A malicious user requests a key that doesn't exist in Cache OR Database (e.g., user:-1).\033[0m\n\n"
+	@echo "👉 Press [ENTER] to simulate the BAD practice..."; read dummy
+	@printf "\n\033[1;33m[Step 1] The BAD Practice: Doing nothing when DB returns empty...\033[0m\n"
+	@printf "Request 1 for user:-1 -> Cache Miss! -> \033[0;31mQuerying Database (Heavy Load)...\033[0m -> DB returns empty.\n"
+	@printf "Request 2 for user:-1 -> Cache Miss! -> \033[0;31mQuerying Database (Heavy Load)...\033[0m -> DB returns empty.\n"
+	@printf "Request 3 for user:-1 -> Cache Miss! -> \033[0;31mQuerying Database (Heavy Load)...\033[0m -> DB returns empty.\n"
+	@printf "💥 The cache is completely bypassed! The database takes all the hits.\n\n"
+	@echo "👉 Press [ENTER] to simulate the GOOD practice (Caching empty results)..."; read dummy
+	@printf "\n\033[1;33m[Step 2] The GOOD Practice: Caching the empty result with a short TTL...\033[0m\n"
+	@printf "Request 1 for user:-1 -> Cache Miss! -> Querying Database... -> DB returns empty.\n"
+	@printf "Writing empty result to cache: \033[0;36mSET user:-1 \"<NULL>\" EX 60\033[0m\n"
+	@docker exec redis-master redis-cli SET user:-1 "<NULL>" EX 60 > /dev/null
+	@printf "\033[0;32m✔ Empty result cached.\033[0m\n\n"
+	@printf "Request 2 for user:-1 -> \033[0;32mCache Hit! (Value: <NULL>)\033[0m -> Database is safe.\n"
+	@printf "Request 3 for user:-1 -> \033[0;32mCache Hit! (Value: <NULL>)\033[0m -> Database is safe.\n"
+	@printf "Checking cached value: \033[0;32m"
+	@docker exec redis-master redis-cli GET user:-1 | tr -d '\r'
+	@printf "\033[0m\n\n"
+	@printf "🎉 The database is protected from repeated malicious queries!\n"
+	@printf "(Note: For advanced protection, use a Bloom Filter before checking the cache).\n\n"

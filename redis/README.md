@@ -57,7 +57,14 @@ Welcome to the Redis Playground! This environment is designed to help you learn,
    ```
    This command fills up the Redis memory to hit the `maxmemory` limit and demonstrates how the `allkeys-lru` eviction policy keeps the server running by deleting old keys.
 
-8. **Connect via CLI**:
+8. **Test Cache Avalanche & Penetration**:
+   ```bash
+   make test-avalanche
+   make test-penetration
+   ```
+   These commands simulate common caching pitfalls and demonstrate the best practices to solve them (adding TTL jitter and caching empty results).
+
+9. **Connect via CLI**:
    ```bash
    make cli-master  # Connect to Master
    make cli-slave   # Connect to Slave
@@ -189,7 +196,14 @@ make clean  # Stop containers and delete all persistent data
    ```
    该命令会疯狂写入数据直到触发 `maxmemory` 内存上限，并演示 `allkeys-lru` 淘汰策略是如何通过自动删除旧数据来保证 Redis 继续正常提供服务的。
 
-8. **通过命令行连接**：
+8. **测试缓存雪崩与穿透**：
+   ```bash
+   make test-avalanche
+   make test-penetration
+   ```
+   这两个命令分别模拟了缓存雪崩和缓存穿透的灾难场景，并直观地演示了如何通过“添加随机过期时间”和“缓存空值”来解决这些问题。
+
+9. **通过命令行连接**：
    ```bash
    make cli-master  # 连接到主节点
    make cli-slave   # 连接到从节点
