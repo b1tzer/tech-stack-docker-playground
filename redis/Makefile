@@ -1,5 +1,8 @@
 .PHONY: start stop clean logs status cli-master cli-slave test-failover test-persistence test-bigkey test-oom test-avalanche test-penetration
 
+# Auto-execute parameter for tests (set to 1 to skip manual prompts)
+AUTO ?= 0
+
 # Start the Redis cluster
 start:
 	@echo "Starting Redis Master-Slave-Sentinel cluster..."
@@ -55,7 +58,7 @@ test-failover:
 	 printf "\n           [ 👑 \033[1;32mredis-master\033[0m ($$M_ROLE) ]\n" ; \
 	 printf "             /                      \\\n" ; \
 	 printf "[ 🛡️ \033[1;36mredis-slave\033[0m ($$S1_ROLE) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\n\n"
-	@echo "👉 Press [ENTER] to simulate Master failure (docker pause redis-master)..."; read dummy
+	@echo "👉 Press [ENTER] to simulate Master failure (docker pause redis-master)..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;31m💥 Pausing redis-master (simulating network partition/hang)...\033[0m\n"
 	@docker pause redis-master > /dev/null
 	@printf "\n           [ ❌ \033[1;31mredis-master\033[0m (down) ]\n"
@@ -94,7 +97,7 @@ test-failover:
 		sleep 1; \
 	done
 	@printf "\033[?25h"
-	@echo "👉 Press [ENTER] to unpause the old master and see it join as a slave..."; read dummy
+	@echo "👉 Press [ENTER] to unpause the old master and see it join as a slave..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;34m🔄 Unpausing redis-master...\033[0m\n"
 	@docker unpause redis-master > /dev/null
 	@printf "\033[?25l"
@@ -138,13 +141,13 @@ test-persistence:
 	@printf "Listing contents of ./data/master/ directory:\n"
 	@ls -lh data/master/ | grep -E "dump.rdb|appendonly" || echo "Files are being synced..."
 	@printf "\n"
-	@echo "👉 Press [ENTER] to simulate a complete cluster crash (docker-compose down)..."; read dummy
+	@echo "👉 Press [ENTER] to simulate a complete cluster crash (docker-compose down)..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;31m💥 Stopping and removing all Redis containers...\033[0m\n"
 	@docker-compose down
 	@printf "\n\033[1;33m[Step 4] Cluster is down. Let's verify no containers are running...\033[0m\n"
 	@docker ps | grep redis || printf "\033[0;32m✔ No Redis containers running.\033[0m\n"
 	@printf "\n"
-	@echo "👉 Press [ENTER] to restart the cluster and test data recovery..."; read dummy
+	@echo "👉 Press [ENTER] to restart the cluster and test data recovery..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;34m🔄 Starting the cluster again...\033[0m\n"
 	@docker-compose up -d
 	@printf "\n\033[1;33m[Step 5] Waiting for cluster to initialize (5 seconds)...\033[0m\n"
@@ -177,13 +180,13 @@ test-bigkey:
 	@printf "Memory usage of 'my_big_hash': \033[0;32m"
 	@docker exec redis-master redis-cli MEMORY USAGE my_big_hash | awk '{print $$1/1024/1024 " MB"}'
 	@printf "\033[0m\n\n"
-	@echo "👉 Press [ENTER] to simulate the BAD practice (using DEL on a Big Key)..."; read dummy
+	@echo "👉 Press [ENTER] to simulate the BAD practice (using DEL on a Big Key)..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;31m💥 Executing DEL my_big_hash (This blocks Redis!)...\033[0m\n"
 	@printf "Time taken to execute DEL: \033[0;31m"
 	@docker exec redis-master sh -c 'time redis-cli DEL my_big_hash > /dev/null' 2>&1 | grep real | awk '{print $$2}'
 	@printf "\033[0m\n"
 	@printf "Notice how long it took? During this time, Redis couldn't process ANY other commands!\n\n"
-	@echo "👉 Press [ENTER] to recreate the Big Key and simulate the GOOD practice (using UNLINK)..."; read dummy
+	@echo "👉 Press [ENTER] to recreate the Big Key and simulate the GOOD practice (using UNLINK)..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[1;33m[Step 3] Recreating the Big Key...\033[0m\n"
 	@docker exec redis-master sh -c 'for i in $$(seq 1 100000); do echo "HSET my_big_hash field$$i value$$i"; done | redis-cli --pipe > /dev/null 2>&1'
 	@printf "\033[0;32m✔ Big Key recreated.\033[0m\n\n"
@@ -207,7 +210,7 @@ test-oom:
 	@printf "Eviction Policy: \033[0;32m"
 	@docker exec redis-master redis-cli config get maxmemory-policy | tail -n 1
 	@printf "\033[0m\n\n"
-	@echo "👉 Press [ENTER] to start filling up memory (This will take a while)..."; read dummy
+	@echo "👉 Press [ENTER] to start filling up memory (This will take a while)..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[1;33m[Step 2] Writing massive amounts of data to trigger OOM...\033[0m\n"
 	@printf "We are writing 1MB strings continuously. Watch the memory usage grow!\n"
 	@docker exec redis-master sh -c ' \
@@ -227,7 +230,7 @@ test-oom:
 	@printf "Number of Evicted Keys (due to allkeys-lru): \033[0;31m"
 	@docker exec redis-master redis-cli info stats | grep evicted_keys | cut -d: -f2 | tr -d '\r'
 	@printf "\033[0m\n\n"
-	@echo "👉 Press [ENTER] to try writing a new key now that memory is full..."; read dummy
+	@echo "👉 Press [ENTER] to try writing a new key now that memory is full..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[1;33m[Step 4] Attempting to write a new key...\033[0m\n"
 	@printf "Executing: SET new_test_key \"This is a test\"\n"
 	@docker exec redis-master redis-cli SET new_test_key "This is a test"
@@ -243,7 +246,7 @@ test-avalanche:
 	@printf "\033[1;33m[Step 1] The BAD Practice: Setting 200 keys with the EXACT same TTL (15s)...\033[0m\n"
 	@docker exec redis-master sh -c 'for i in $$(seq 1 200); do echo "SET bad_key:$$i \"value\" EX 15"; done | redis-cli --pipe > /dev/null 2>&1'
 	@printf "\033[0;32m✔ 200 keys created with exactly 15s expiration.\033[0m\n\n"
-	@echo "👉 Press [ENTER] to watch the Live TTL Dashboard..."; read dummy
+	@echo "👉 Press [ENTER] to watch the Live TTL Dashboard..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;36mLive TTL Dashboard (200 Keys - Bad Practice):\033[0m\n"
 	@for i in $$(seq 1 10); do echo ""; done
 	@printf "\033[?25l"
@@ -263,11 +266,11 @@ test-avalanche:
 	done
 	@printf "\033[?25h"
 	@printf "\n💥 \033[0;31mAll keys expired simultaneously! If these were hot data, your database would be crushed right now.\033[0m\n\n"
-	@echo "👉 Press [ENTER] to simulate the GOOD practice (Adding random jitter)..."; read dummy
+	@echo "👉 Press [ENTER] to simulate the GOOD practice (Adding random jitter)..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[1;33m[Step 2] The GOOD Practice: Adding random jitter to TTLs (10s + random 0-10s)...\033[0m\n"
 	@docker exec redis-master sh -c 'for i in $$(seq 1 200); do jitter=$$((RANDOM % 11)); echo "SET good_key:$$i \"value\" EX $$((10 + jitter))"; done | redis-cli --pipe > /dev/null 2>&1'
 	@printf "\033[0;32m✔ 200 keys created with 10s~20s expiration.\033[0m\n\n"
-	@echo "👉 Press [ENTER] to watch the Live TTL Dashboard..."; read dummy
+	@echo "👉 Press [ENTER] to watch the Live TTL Dashboard..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;36mLive TTL Dashboard (200 Keys - Good Practice):\033[0m\n"
 	@for i in $$(seq 1 10); do echo ""; done
 	@printf "\033[?25l"
@@ -294,13 +297,13 @@ test-penetration:
 	@printf "\033[0;34m👻 Starting Cache Penetration (缓存穿透) Demonstration\033[0m\n"
 	@printf "\033[0;34m========================================================\033[0m\n\n"
 	@printf "\033[1;33m[Concept] A malicious user requests a key that doesn't exist in Cache OR Database (e.g., user:-1).\033[0m\n\n"
-	@echo "👉 Press [ENTER] to simulate the BAD practice..."; read dummy
+	@echo "👉 Press [ENTER] to simulate the BAD practice..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[1;33m[Step 1] The BAD Practice: Doing nothing when DB returns empty...\033[0m\n"
 	@printf "Request 1 for user:-1 -> Cache Miss! -> \033[0;31mQuerying Database (Heavy Load)...\033[0m -> DB returns empty.\n"
 	@printf "Request 2 for user:-1 -> Cache Miss! -> \033[0;31mQuerying Database (Heavy Load)...\033[0m -> DB returns empty.\n"
 	@printf "Request 3 for user:-1 -> Cache Miss! -> \033[0;31mQuerying Database (Heavy Load)...\033[0m -> DB returns empty.\n"
 	@printf "💥 The cache is completely bypassed! The database takes all the hits.\n\n"
-	@echo "👉 Press [ENTER] to simulate the GOOD practice (Caching empty results)..."; read dummy
+	@echo "👉 Press [ENTER] to simulate the GOOD practice (Caching empty results)..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[1;33m[Step 2] The GOOD Practice: Caching the empty result with a short TTL...\033[0m\n"
 	@printf "Request 1 for user:-1 -> Cache Miss! -> Querying Database... -> DB returns empty.\n"
 	@printf "Writing empty result to cache: \033[0;36mSET user:-1 \"<NULL>\" EX 60\033[0m\n"
