@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  redis-master:
+    image: redis:7.2-alpine
+    container_name: redis-master
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./conf/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./data/master:/data
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - redis-net
+    restart: unless-stopped
+
+  redis-slave:
+    image: redis:7.2-alpine
+    container_name: redis-slave
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./conf/redis-slave.conf:/usr/local/etc/redis/redis.conf
+      - ./data/slave:/data
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - TZ=Asia/Shanghai
+    depends_on:
+      - redis-master
+    networks:
+      - redis-net
+    restart: unless-stopped
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    environment:
+      - REDIS_HOSTS=master:redis-master:6379,slave:redis-slave:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - redis-net
+    depends_on:
+      - redis-master
+      - redis-slave
+
+networks:
+  redis-net:
+    driver: bridge
