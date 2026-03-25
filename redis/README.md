@@ -39,7 +39,13 @@ Welcome to the Redis Playground! This environment is designed to help you learn,
    ```
    This command will stop the master node, wait for Sentinel to detect the failure, and automatically promote one of the slaves to be the new master.
 
-5. **Connect via CLI**:
+5. **Test Persistence (RDB/AOF)**:
+   ```bash
+   make test-persistence
+   ```
+   This command writes test data to the master, completely stops the cluster, restarts it, and verifies that the data survived the restart.
+
+6. **Connect via CLI**:
    ```bash
    make cli-master  # Connect to Master
    make cli-slave   # Connect to Slave
@@ -153,7 +159,13 @@ make clean  # Stop containers and delete all persistent data
    ```
    该命令会模拟主节点宕机（停止 master 容器），等待哨兵检测到故障后，自动将其中一个从节点提升为新的主节点。
 
-5. **通过命令行连接**：
+5. **测试持久化 (RDB/AOF)**：
+   ```bash
+   make test-persistence
+   ```
+   该命令会向主节点写入测试数据，然后完全停止整个集群并重新启动，最后验证数据是否在重启后依然存在。
+
+6. **通过命令行连接**：
    ```bash
    make cli-master  # 连接到主节点
    make cli-slave   # 连接到从节点
