@@ -186,47 +186,49 @@ test-avalanche:
 	@printf "\n\033[0;34m========================================================\033[0m\n"
 	@printf "\033[0;34m❄️  Starting Cache Avalanche (缓存雪崩) Demonstration\033[0m\n"
 	@printf "\033[0;34m========================================================\033[0m\n\n"
-	@printf "\033[1;33m[Step 1] The BAD Practice: Setting many keys with the EXACT same TTL...\033[0m\n"
-	@docker exec redis-master sh -c 'for i in $$(seq 1 100); do echo "SET bad_key:$$i \"value\" EX 10"; done | redis-cli --pipe > /dev/null 2>&1'
-	@printf "\033[0;32m✔ 100 keys created with exactly 10s expiration.\033[0m\n"
-	@printf "Checking TTL of bad_key:1 -> \033[0;31m"
-	@docker exec redis-master redis-cli TTL bad_key:1 | tr -d '\r'
-	@printf "s\033[0m\n"
-	@printf "Checking TTL of bad_key:50 -> \033[0;31m"
-	@docker exec redis-master redis-cli TTL bad_key:50 | tr -d '\r'
-	@printf "s\033[0m\n\n"
-	@echo "👉 Press [ENTER] to wait 10 seconds and watch them all expire at once..."; read dummy
-	@printf "\n"
-	@for i in $$(seq 10 -1 1); do \
-		printf "\r\033[K\033[0;31m⏳ Waiting... %2d seconds remaining\033[0m" $$i; \
-		sleep 1; \
+	@printf "\033[1;33m[Step 1] The BAD Practice: Setting 200 keys with the EXACT same TTL (15s)...\033[0m\n"
+	@docker exec redis-master sh -c 'for i in $$(seq 1 200); do echo "SET bad_key:$$i \"value\" EX 15"; done | redis-cli --pipe > /dev/null 2>&1'
+	@printf "\033[0;32m✔ 200 keys created with exactly 15s expiration.\033[0m\n\n"
+	@echo "👉 Press [ENTER] to watch the Live TTL Dashboard..."; read dummy
+	@printf "\n\033[0;36mLive TTL Dashboard (200 Keys - Bad Practice):\033[0m\n"
+	@for i in $$(seq 1 10); do echo ""; done
+	@for step in $$(seq 1 32); do \
+		printf "\033[10A"; \
+		docker exec redis-master redis-cli --raw EVAL "local ttls={}; for i=1,200 do table.insert(ttls, redis.call('TTL', ARGV[1]..':'..i)) end; return ttls" 0 "bad_key" | \
+		awk '{ \
+			gsub(/\r/, "", $$1); \
+			if ($$1 == -2) val = "\033[0;31m -\033[0m"; \
+			else if ($$1 <= 5) val = sprintf("\033[1;31m%2d\033[0m", $$1); \
+			else if ($$1 <= 10) val = sprintf("\033[1;33m%2d\033[0m", $$1); \
+			else val = sprintf("\033[1;32m%2d\033[0m", $$1); \
+			if (NR % 20 == 0) printf "%s\n", val; \
+			else printf "%s ", val; \
+		}'; \
+		sleep 0.5; \
 	done
-	@printf "\r\033[K"
-	@printf "Number of bad_keys remaining: \033[0;31m"
-	@docker exec redis-master redis-cli KEYS "bad_key:*" | wc -l | tr -d ' '
-	@printf "\033[0m\n"
-	@printf "💥 All keys expired simultaneously! If these were hot data, your database would be crushed right now.\n\n"
+	@printf "\n💥 \033[0;31mAll keys expired simultaneously! If these were hot data, your database would be crushed right now.\033[0m\n\n"
 	@echo "👉 Press [ENTER] to simulate the GOOD practice (Adding random jitter)..."; read dummy
-	@printf "\n\033[1;33m[Step 2] The GOOD Practice: Adding random jitter to TTLs...\033[0m\n"
-	@docker exec redis-master sh -c 'for i in $$(seq 1 100); do jitter=$$((RANDOM % 5)); echo "SET good_key:$$i \"value\" EX $$((10 + jitter))"; done | redis-cli --pipe > /dev/null 2>&1'
-	@printf "\033[0;32m✔ 100 keys created with 10s + random(0-4)s expiration.\033[0m\n"
-	@printf "Checking TTL of good_key:1 -> \033[0;32m"
-	@docker exec redis-master redis-cli TTL good_key:1 | tr -d '\r'
-	@printf "s\033[0m\n"
-	@printf "Checking TTL of good_key:50 -> \033[0;32m"
-	@docker exec redis-master redis-cli TTL good_key:50 | tr -d '\r'
-	@printf "s\033[0m\n\n"
-	@echo "👉 Press [ENTER] to wait 10 seconds and see the difference..."; read dummy
-	@printf "\n"
-	@for i in $$(seq 10 -1 1); do \
-		printf "\r\033[K\033[0;32m⏳ Waiting... %2d seconds remaining\033[0m" $$i; \
-		sleep 1; \
+	@printf "\n\033[1;33m[Step 2] The GOOD Practice: Adding random jitter to TTLs (10s + random 0-10s)...\033[0m\n"
+	@docker exec redis-master sh -c 'for i in $$(seq 1 200); do jitter=$$((RANDOM % 11)); echo "SET good_key:$$i \"value\" EX $$((10 + jitter))"; done | redis-cli --pipe > /dev/null 2>&1'
+	@printf "\033[0;32m✔ 200 keys created with 10s~20s expiration.\033[0m\n\n"
+	@echo "👉 Press [ENTER] to watch the Live TTL Dashboard..."; read dummy
+	@printf "\n\033[0;36mLive TTL Dashboard (200 Keys - Good Practice):\033[0m\n"
+	@for i in $$(seq 1 10); do echo ""; done
+	@for step in $$(seq 1 42); do \
+		printf "\033[10A"; \
+		docker exec redis-master redis-cli --raw EVAL "local ttls={}; for i=1,200 do table.insert(ttls, redis.call('TTL', ARGV[1]..':'..i)) end; return ttls" 0 "good_key" | \
+		awk '{ \
+			gsub(/\r/, "", $$1); \
+			if ($$1 == -2) val = "\033[0;31m -\033[0m"; \
+			else if ($$1 <= 5) val = sprintf("\033[1;31m%2d\033[0m", $$1); \
+			else if ($$1 <= 10) val = sprintf("\033[1;33m%2d\033[0m", $$1); \
+			else val = sprintf("\033[1;32m%2d\033[0m", $$1); \
+			if (NR % 20 == 0) printf "%s\n", val; \
+			else printf "%s ", val; \
+		}'; \
+		sleep 0.5; \
 	done
-	@printf "\r\033[K"
-	@printf "Number of good_keys remaining: \033[0;32m"
-	@docker exec redis-master redis-cli KEYS "good_key:*" | wc -l | tr -d ' '
-	@printf "\033[0m\n"
-	@printf "🎉 Keys are expiring gradually! The database load is smoothed out.\n\n"
+	@printf "\n🎉 \033[0;32mKeys are expiring gradually! The database load is smoothed out.\033[0m\n\n"
 
 # Test Cache Penetration Scenario
 test-penetration:
