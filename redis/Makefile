@@ -56,13 +56,13 @@ test-failover:
 	 S1_ROLE=$$(docker exec redis-slave redis-cli role 2>/dev/null | head -n 1 | tr -d '\r' || echo "down") ; \
 	 S2_ROLE=$$(docker exec redis-slave2 redis-cli role 2>/dev/null | head -n 1 | tr -d '\r' || echo "down") ; \
 	 printf "\n           [ 👑 \033[1;32mredis-master\033[0m ($$M_ROLE) ]\n" ; \
-	 printf "             /                      \\\n" ; \
+	 printf '             /                      \\\n' ; \
 	 printf "[ 🛡️ \033[1;36mredis-slave\033[0m ($$S1_ROLE) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\n\n"
 	@echo "👉 Press [ENTER] to simulate Master failure (docker pause redis-master)..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;31m💥 Pausing redis-master (simulating network partition/hang)...\033[0m\n"
 	@docker pause redis-master > /dev/null 2>&1 || true
 	@printf "\n           [ ❌ \033[1;31mredis-master\033[0m (down) ]\n"
-	@printf "             /                      \\\n"
+	@printf '             /                      \\\n'
 	@printf "[ 🛡️ \033[1;36mredis-slave\033[0m (slave) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m (slave) ]\n\n"
 	@printf "\033[1;33m[Step 2] Sentinels detecting failure and voting...\033[0m\n"
 	@printf "\033[?25l"
@@ -82,15 +82,15 @@ test-failover:
 		S2_ROLE=$$(docker exec redis-slave2 redis-cli role 2>/dev/null | head -n 1 | tr -d '\r' || echo "down") ; \
 		if [ "$$S1_ROLE" = "master" ]; then \
 			printf "           [ ❌ \033[1;31mredis-master\033[0m (down) ]\033[K\n" ; \
-			printf "             /                      \\\033[K\n" ; \
+			printf '             /                      \\\033[K\n' ; \
 			printf "[ 👑 \033[1;32mredis-slave\033[0m (master) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\033[K\n\n" ; \
 		elif [ "$$S2_ROLE" = "master" ]; then \
 			printf "           [ ❌ \033[1;31mredis-master\033[0m (down) ]\033[K\n" ; \
-			printf "             /                      \\\033[K\n" ; \
+			printf '             /                      \\\033[K\n' ; \
 			printf "[ 🛡️ \033[1;36mredis-slave\033[0m ($$S1_ROLE) ]  [ 👑 \033[1;32mredis-slave2\033[0m (master) ]\033[K\n\n" ; \
 		else \
 			printf "           [ ❌ \033[1;31mredis-master\033[0m (down) ]\033[K\n" ; \
-			printf "             /                      \\\033[K\n" ; \
+			printf '             /                      \\\033[K\n' ; \
 			printf "[ 🛡️ \033[1;36mredis-slave\033[0m ($$S1_ROLE) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\033[K\n" ; \
 			printf "  ⚠️  Failover in progress... ($$i/15s)\033[K\n" ; \
 		fi; \
@@ -112,15 +112,15 @@ test-failover:
 	 S2_ROLE=$$(docker exec redis-slave2 redis-cli role 2>/dev/null | head -n 1 | tr -d '\r' || echo "down") ; \
 	 if [ "$$S1_ROLE" = "master" ]; then \
 	 	printf "\n           [ 🛡️ \033[1;36mredis-master\033[0m ($$M_ROLE) ]\n" ; \
-	 	printf "             /                      \\\n" ; \
+	 	printf '             /                      \\\n' ; \
 	 	printf "[ 👑 \033[1;32mredis-slave\033[0m (master) ] [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\n\n" ; \
 	 elif [ "$$S2_ROLE" = "master" ]; then \
 	 	printf "\n           [ 🛡️ \033[1;36mredis-master\033[0m ($$M_ROLE) ]\n" ; \
-	 	printf "             /                      \\\n" ; \
+	 	printf '             /                      \\\n' ; \
 	 	printf "[ 🛡️ \033[1;36mredis-slave\033[0m ($$S1_ROLE) ]  [ 👑 \033[1;32mredis-slave2\033[0m (master) ]\n\n" ; \
 	 else \
 	 	printf "\n           [ 👑 \033[1;32mredis-master\033[0m ($$M_ROLE) ]\n" ; \
-	 	printf "             /                      \\\n" ; \
+	 	printf '             /                      \\\n' ; \
 	 	printf "[ 🛡️ \033[1;36mredis-slave\033[0m ($$S1_ROLE) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\n\n" ; \
 	 fi
 	@printf "\033[0;32m🎉 Failover Demonstration Complete!\033[0m\n\n"
