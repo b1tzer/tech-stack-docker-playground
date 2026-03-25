@@ -60,7 +60,7 @@ test-failover:
 	 printf "[ 🛡️ \033[1;36mredis-slave\033[0m ($$S1_ROLE) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\n\n"
 	@echo "👉 Press [ENTER] to simulate Master failure (docker pause redis-master)..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;31m💥 Pausing redis-master (simulating network partition/hang)...\033[0m\n"
-	@docker pause redis-master > /dev/null
+	@docker pause redis-master > /dev/null 2>&1 || true
 	@printf "\n           [ ❌ \033[1;31mredis-master\033[0m (down) ]\n"
 	@printf "             /                      \\\n"
 	@printf "[ 🛡️ \033[1;36mredis-slave\033[0m (slave) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m (slave) ]\n\n"
@@ -99,7 +99,7 @@ test-failover:
 	@printf "\033[?25h"
 	@echo "👉 Press [ENTER] to unpause the old master and see it join as a slave..."; if [ "$(AUTO)" = "1" ]; then echo "   ⏳ Auto-continuing in 2s..."; sleep 2; else read dummy; fi
 	@printf "\n\033[0;34m🔄 Unpausing redis-master...\033[0m\n"
-	@docker unpause redis-master > /dev/null
+	@docker unpause redis-master > /dev/null 2>&1 || true
 	@printf "\033[?25l"
 	@for i in $$(seq 1 5); do \
 		printf "\r\033[K\033[0;33m⏳ Waiting for old master to sync... %2d seconds\033[0m" $$i; \
