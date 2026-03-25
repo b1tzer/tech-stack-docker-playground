@@ -63,13 +63,13 @@ test-failover:
 	@printf "[ 🛡️ \033[1;36mredis-slave\033[0m (slave) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m (slave) ]\n\n"
 	@printf "\033[1;33m[Step 2] Sentinels detecting failure and voting...\033[0m\n"
 	@printf "\033[?25l"
-	@for i in $$(seq 1 15); do \
+	@for i in $$(seq 1 25); do \
 		printf "\r\033[K\033[0;33m👀 Sentinels observing and negotiating... %2d seconds\033[0m" $$i; \
 		sleep 1; \
 	done
 	@printf "\r\033[K\033[?25h"
 	@printf "\n\033[1;33m[Step 3] Sentinel Decision Log (Highlights):\033[0m\n"
-	@docker logs redis-sentinel-1 --since 20s | grep -E "sdown|odown|vote-for-leader|switch-master" | sed 's/^/  /' || echo "  (No logs found, maybe still deciding?)"
+	@docker logs redis-sentinel-1 --since 30s | grep -E "sdown|odown|vote-for-leader|switch-master" | sed 's/^/  /' || echo "  (No logs found, maybe still deciding?)"
 	@printf "\n\033[1;33m[Step 4] New Cluster Topology:\033[0m\n"
 	@S1_ROLE=$$(docker exec redis-slave redis-cli role 2>/dev/null | head -n 1 | tr -d '\r' || echo "down") ; \
 	 S2_ROLE=$$(docker exec redis-slave2 redis-cli role 2>/dev/null | head -n 1 | tr -d '\r' || echo "down") ; \
