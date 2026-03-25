@@ -55,9 +55,9 @@ test-failover:
 	 printf "\n           [ 👑 \033[1;32mredis-master\033[0m ($$M_ROLE) ]\n" ; \
 	 printf "             /                      \\\n" ; \
 	 printf "[ 🛡️ \033[1;36mredis-slave\033[0m ($$S1_ROLE) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m ($$S2_ROLE) ]\n\n"
-	@echo "👉 Press [ENTER] to simulate Master failure (docker stop redis-master)..."; read dummy
-	@printf "\n\033[0;31m💥 Stopping redis-master...\033[0m\n"
-	@docker stop redis-master > /dev/null
+	@echo "👉 Press [ENTER] to simulate Master failure (docker pause redis-master)..."; read dummy
+	@printf "\n\033[0;31m💥 Pausing redis-master (simulating network partition/hang)...\033[0m\n"
+	@docker pause redis-master > /dev/null
 	@printf "\n           [ ❌ \033[1;31mredis-master\033[0m (down) ]\n"
 	@printf "             /                      \\\n"
 	@printf "[ 🛡️ \033[1;36mredis-slave\033[0m (slave) ]  [ 🛡️ \033[1;36mredis-slave2\033[0m (slave) ]\n\n"
@@ -94,9 +94,9 @@ test-failover:
 		sleep 1; \
 	done
 	@printf "\033[?25h"
-	@echo "👉 Press [ENTER] to restart the old master and see it join as a slave..."; read dummy
-	@printf "\n\033[0;34m🔄 Starting redis-master...\033[0m\n"
-	@docker start redis-master > /dev/null
+	@echo "👉 Press [ENTER] to unpause the old master and see it join as a slave..."; read dummy
+	@printf "\n\033[0;34m🔄 Unpausing redis-master...\033[0m\n"
+	@docker unpause redis-master > /dev/null
 	@printf "\033[?25l"
 	@for i in $$(seq 1 5); do \
 		printf "\r\033[K\033[0;33m⏳ Waiting for old master to sync... %2d seconds\033[0m" $$i; \
