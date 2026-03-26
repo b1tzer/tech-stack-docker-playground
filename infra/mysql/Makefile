@@ -44,21 +44,36 @@ define wait_for_healthy
 	'
 endef
 
+define wait_for_seeder
+	@printf "\033[1;34m🌱 Waiting for data seeder to complete (this may take a moment)...\033[0m\n"
+	@docker wait $$(docker-compose ps -a -q seeder) > /dev/null 2>&1 || true
+	@printf "\033[1;36m📊 Seeder Result:\033[0m\n"
+	@bash -c ' \
+		LAST_LINE=$$(docker-compose logs --tail=1 --no-log-prefix seeder 2>/dev/null); \
+		if [[ "$$LAST_LINE" == *"Data already exists"* ]]; then \
+			printf "  \033[33m%s\033[0m\n" "$$LAST_LINE"; \
+		else \
+			docker-compose logs --no-log-prefix seeder 2>/dev/null | grep -E "Data already exists|Data seeding completed|Error|Seeding" | tail -n 5 | sed "s/^/  /"; \
+		fi \
+	'
+endef
+
 start: init
 	@printf "\033[1;34m🚀 Starting MySQL Cluster...\033[0m\n"
 	@docker-compose up -d > /dev/null 2>&1
 	$(call wait_for_healthy,mysql-master,Master Node)
 	$(call wait_for_healthy,mysql-slave,Slave Node)
+	$(call wait_for_seeder)
 	@printf "\033[1;32m✨ Cluster is up and running!\033[0m\n"
 
 stop:
 	@printf "\033[1;33m🛑 Stopping cluster...\033[0m\n"
-	@docker-compose down > /dev/null 2>&1
+	@docker-compose down
 	@printf "\033[1;32m✔ Cluster stopped.\033[0m\n"
 
 clean: stop
 	@printf "\033[1;33m🧹 Cleaning workspace...\033[0m\n"
-	@docker-compose down -v > /dev/null 2>&1
+	@docker-compose down -v
 	@sudo rm -rf master/data/* slave/data/*
 	@printf "\033[1;32m✔ Workspace cleaned.\033[0m\n"
 
